@@ -1,32 +1,26 @@
-//
-//  PipesOptimizerApp.swift
-//  PipesOptimizer
-//
-//  Created by Nikita Mushchak on 2026-02-07.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct PipesOptimizerApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    private let settings: GridSettings = {
+        let arguments = ProcessInfo.processInfo.arguments
+        let isUITesting = arguments.contains("-ui-testing")
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
+        let sourceSeed: UInt64 = isUITesting ? 0xABCDEF : UInt64.random(in: UInt64.min...UInt64.max)
+        let optimizerSeed: UInt64 = isUITesting ? 0x12345678 : GridSettings.defaultOptimizerSeed
+
+        return GridSettings(
+            rows: GridSettings.defaultRows,
+            columns: GridSettings.defaultColumns,
+            junctionPenalty: GridSettings.defaultJunctionPenalty,
+            optimizerSeed: optimizerSeed,
+            sourceSeed: sourceSeed
+        )
     }()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(settings: settings)
         }
-        .modelContainer(sharedModelContainer)
     }
 }

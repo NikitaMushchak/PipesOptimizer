@@ -1,61 +1,66 @@
-//
-//  ContentView.swift
-//  PipesOptimizer
-//
-//  Created by Nikita Mushchak on 2026-02-07.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @StateObject private var viewModel: PipeOptimizerViewModel
+
+    init(settings: GridSettings = GridSettings()) {
+        _viewModel = StateObject(wrappedValue: PipeOptimizerViewModel(settings: settings))
+    }
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        VStack(spacing: 12) {
+            Text("Pipe Optimizer")
+                .font(.title2.weight(.semibold))
+
+            GridView(
+                grid: viewModel.grid,
+                cellProvider: { coordinate in
+                    viewModel.cell(at: coordinate)
+                },
+                onCellTap: { coordinate in
+                    viewModel.handleCellTap(at: coordinate)
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 12)
+
+            statusRow
+
+            ControlPanelView(
+                isOptimizing: viewModel.isOptimizing,
+                onOptimize: {
+                    viewModel.optimize()
+                },
+                onClear: {
+                    viewModel.clear()
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+            )
+            .padding(.horizontal, 12)
         }
+        .padding(.vertical, 12)
+        .background(Color(uiColor: .systemGroupedBackground))
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+    private var statusRow: some View {
+        HStack(spacing: 16) {
+            Text("Length: \(viewModel.totalLength)")
+                .accessibilityIdentifier("status_totalLength")
+                .accessibilityValue("\(viewModel.totalLength)")
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            Text("Junctions: \(viewModel.junctionCount)")
+                .accessibilityIdentifier("status_junctionCount")
+                .accessibilityValue("\(viewModel.junctionCount)")
+
+            Text("Consumers: \(viewModel.consumerCount)")
+                .accessibilityIdentifier("status_consumerCount")
+                .accessibilityValue("\(viewModel.consumerCount)")
         }
+        .font(.subheadline.monospacedDigit())
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
